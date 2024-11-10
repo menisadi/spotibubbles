@@ -19,27 +19,28 @@ def get_top_artists(sp, term="long_term", limit=20):
     return top_artists
 
 
-def get_last_album(sp, artist_id):
-    albums = sp.artist_albums(artist_id, limit=1)
-    last_album = albums["items"][0]
+def get_albums_by_year(sp, artist_id, year=2024):
+    albums = sp.artist_albums(artist_id, limit=5)
+    # filter albums by release year
+    albums = [
+        album
+        for album in albums["items"]
+        if int(album["release_date"].split("-")[0]) == year
+    ]
 
-    # get release date
-    release_date_str = last_album["release_date"]
-    release_date = datetime.datetime.strptime(release_date_str, "%Y-%m-%d")
-    release_year = release_date.year
-
-    return last_album, release_year
+    return albums
 
 
 def did_release_album_this_year(sp, artist_id):
-    last_album, release_year = get_last_album(sp, artist_id)
-
     current_year = datetime.datetime.now().year
 
-    if release_year == current_year:
-        return True
-    else:
-        return False
+    albums = get_albums_by_year(sp, artist_id, current_year)
+
+    for album in albums:
+        if album["album_type"] == "album" and "edition" not in album["name"].lower():
+            return album["name"]
+
+    return None
 
 
 def main(term, limit):
@@ -60,7 +61,10 @@ def main(term, limit):
 
     for i, artist in enumerate(top_artists["items"]):
         if did_release_album_this_year(sp, artist["id"]):
-            album_from_this_year = get_last_album(sp, artist["id"])
+            current_year = datetime.datetime.now().year
+            album_from_this_year = get_albums_by_year(
+                sp, artist["id"], year=current_year
+            )
             print(
                 f"{i}: {fix_name(artist['name'])} - {fix_name(album_from_this_year[0]['name'])}"
             )
