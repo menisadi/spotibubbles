@@ -43,7 +43,7 @@ def did_release_album_this_year(sp, artist_id):
     return None
 
 
-def main(term, limit):
+def main(term, limit, only_artists=False):
     with open("tokens.json", "r") as file:
         tokens = json.load(file)
 
@@ -58,6 +58,10 @@ def main(term, limit):
     )
 
     top_artists = get_top_artists(sp, term=term, limit=limit)
+    if only_artists:
+        for i, artist in enumerate(top_artists["items"]):
+            print(f"{i}: {fix_name(artist['name'])}")
+        return
 
     for i, artist in enumerate(top_artists["items"]):
         if did_release_album_this_year(sp, artist["id"]):
@@ -68,6 +72,7 @@ def main(term, limit):
             print(
                 f"{i}: {fix_name(artist['name'])} - {fix_name(album_from_this_year[0]['name'])}"
             )
+    return
 
 
 if __name__ == "__main__":
@@ -75,9 +80,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--time_range", type=str, default="long_term")
     parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--only_artists", type=bool, default=False)
+
     args = parser.parse_args()
 
-    # help
     if args.time_range not in ["short_term", "medium_term", "long_term"]:
         # try to convert "short" to "short_term" etc.
         attemted_fix_time_range = args.time_range.lower() + "_term"
@@ -95,4 +101,4 @@ if __name__ == "__main__":
         print("limit must be at least 1")
         exit(1)
 
-    main(args.time_range, args.limit)
+    main(args.time_range, args.limit, args.only_artists)
